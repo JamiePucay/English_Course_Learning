@@ -1,0 +1,114 @@
+English_Course_Learning/
+│
+├── includes/                         # Core PHP functions and classes
+│   ├── auth.php                      # Authentication configuration
+│   ├── config.php					  # Application configuration
+│   ├── db.php                  	  # Database connection configuration
+│   ├── functions.php                 # Common functions
+│   ├── header.php                 	  # Header
+│   ├── footer.php                 	  # Footer
+│   ├── sidebar.php                   # Sidebar
+│   ├── classes/                      # PHP classes
+│   │   ├── Database.php              # Database connection class
+│   │   ├── User.php                  # User related operations
+│   │   ├── Auth.php                  # Authentication class
+│   │   ├── Course.php                # Course management class
+│   │   ├── Lesson.php                # Lesson management class
+│   │   ├── Assignment.php            # Assignment management class
+│   │   ├── Quiz.php                  # Quiz management class
+│   │   ├── Exam.php                  # Exam management class
+│   │   ├── Resource.php              # Library resource class
+│   │   ├── Progress.php              # Student progress tracking
+│   │   ├── Rating.php                # Ratings management
+│   │   ├── Submission.php            # Assignment submissions
+│   │   ├── Attendance.php            # Attendance tracking
+│   │   ├── Notification.php          # Notifications management
+│   │   ├── Admin.php                 # Admin specific operations
+│   │   └── Librarian.php             # Librarian specific operations
+│   │
+│   └── helpers/                      # Helper functions
+│       ├── validation.php            # Input validation functions
+│       ├── formatting.php            # Data formatting utilities
+│       ├── file_upload.php           # File upload helpers
+│       └── email_templates.php       # Email template helpers
+│
+├── public/                           # Publicly accessible files
+│   ├── index.php                     # Main entry point
+│   ├── assets/                       # Static assets
+│   │   ├── style.css             	  # Main styles
+│   │   │
+│   │   └── images/                   # Image assets
+│   │       ├── logo.png              # Site logo
+│   │       ├── icons/                # Icon images
+│   │       └── avatars/              # User avatars
+│   │
+│   └── uploads/                      # User uploaded files
+│       ├── profile_pictures/         # User profile pictures
+│       ├── course_materials/         # Course related uploads
+│       ├── assignments/              # Assignment submissions
+│       ├── resources/                # Library resources
+│       └── tmp/                      # Temporary uploads
+│
+├── admin/                            # Admin panel
+│   ├── index.php                     # Admin dashboard
+│   ├── users.php                     # User management
+│   ├── courses.php                   # Course management
+│   ├── analytics.php                 # Analytics dashboard
+│   ├── settings.php                  # System settings
+│   └── resources.php                 # Resource management
+│
+├── teacher/                          # Teacher panel
+│   ├── index.php                     # Teacher dashboard
+│   ├── courses.php                   # Course management
+│   ├── lessons.php                   # Lesson management
+│   ├── assignments.php               # Assignment management
+│   ├── quizzes.php                   # Quiz management
+│   ├── exams.php                     # Exam management
+│   ├── students.php                  # Student management
+│   ├── submissions.php               # Review submissions
+│   ├── attendance.php                # Attendance tracking
+│   ├── resources.php                 # Access resources
+│   └── reports.php                   # Performance reports
+│
+├── student/                          # Student panel
+│   ├── index.php                     # Student dashboard
+│   ├── enroll.php                    # Enroll in a new course
+│   ├── viewCourses.php               # Open enrolled courses
+│   ├── courses.php                   # View enrolled courses
+│   ├── lessons.php                   # Access lessons
+│   ├── assignments.php               # View & submit assignments
+│   ├── quizzes.php                   # Take quizzes
+│   ├── exams.php                     # Take exams
+│   └── progress.php                  # View progress
+│
+├── librarian/                        # Librarian panel
+│   ├── index.php                     # Librarian dashboard
+│   ├── resources.php                 # Resource management
+│   ├── upload.php                    # Upload resources
+│   └── statistics.php                # Resource usage statistics
+│
+├── user/                             # Authentication pages
+│   ├── login.php                     # Login page
+│   ├── logout.php                    # Logout
+│   ├── register.php                  # Registration page
+│   ├── forgot-password.php           # Password recovery
+│   └── reset-password.php            # Password reset
+│
+├── api/                              # API endpoints (if needed)
+│   ├── index.php                     # API router
+│   ├── courses.php                   # Course API
+│   ├── lessons.php                   # Lesson API
+│   ├── assignments.php               # Assignment API
+│   └── users.php                     # User API
+│
+├── logs/                             # Log files
+│   ├── error.log                     # Error logs
+│   ├── access.log                    # Access logs
+│   └── activity.log                  # User activity logs
+│
+├── tests/                            # Test files (if applicable)
+│   ├── unit/                         # Unit tests
+│   └── integration/                  # Integration tests
+│
+└── index.php                         # Main entry point
+
