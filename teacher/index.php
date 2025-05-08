@@ -48,25 +48,40 @@ $courses = executeQueryAll($sql, ['teacher_id' => $teacher_id]);
 
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
 
-                <div class="profile-container mt-4">
-                    <h2>Welcome, <?= htmlspecialchars($user['first_name']) ?></h2>
-                    <p>Courses you have created:</p>
-                    <ul>
-                        <?php foreach ($courses as $course): ?>
-                        <li>
-                            <?= htmlspecialchars($course['title']) ?> - Status: <?= $course['status'] ?> - Created: <?= formatDate($course['created_at']) ?>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
+    <div class="mt-4">
+        <h2>Welcome, <?= htmlspecialchars($user['first_name']) ?></h2>
+        <p>Courses you have created:</p>
 
-            </main>
+        <div class="row">
+            <?php foreach ($courses as $course): ?>
+                <div class="mb-4">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><?= htmlspecialchars($course['title']) ?></h5>
+                            <p class="card-text">
+                                <strong>Status:</strong> <?= htmlspecialchars($course['status']) ?><br>
+                                <strong>Created:</strong> <?= formatDate($course['created_at']) ?>
+                            </p>
+                        </div>
+                        <div class="card-footer text-end bg-white border-top-0">
+                            <a href="viewCourse.php?id=<?= $course['course_id'] ?>" class="btn btn-primary btn-sm">
+                                View Course
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
         </div>
     </div>
 
-    <?php include '../includes/footer.php'; ?>
+</main>
+
+        </div>
+    </div>
 
 </body>
+
+
 </html>
 
 

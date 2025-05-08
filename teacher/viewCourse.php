@@ -15,38 +15,47 @@ $teacher_id = $user['user_id'];
 if (isset($_GET['id'])) {
     $course_id = (int) $_GET['id'];
 
-    // Fetch course details
-    $course = executeQuerySingle("SELECT * FROM courses WHERE course_id = ? AND creator_id = ?", [$course_id, $teacher_id]);
+    // allows the teacher edit the course if they are the creator, assigned teacher, or it's shared with them
+    $sql = "SELECT c.* FROM courses c
+        LEFT JOIN course_teachers ct ON ct.course_id = c.course_id
+        LEFT JOIN course_sharing cs ON cs.course_id = c.course_id
+        WHERE c.course_id = :course_id
+        AND (
+            c.creator_id = :teacher_id
+            OR ct.teacher_id = :teacher_id
+            OR cs.shared_with_id = :teacher_id
+        )";
+
+    $course = executeQuerySingle($sql, [
+        'course_id' => $course_id,
+        'teacher_id' => $teacher_id
+    ]);
 
     if (!$course) {
-        setFlashMessage('error', 'Course not found or you do not have permission to view this course.');
+        setFlashMessage('error', 'Course not found or you do not have permission to edit this course.');
+        redirect('courses.php');
+    }
+
+    // Handle form submission
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        validateCSRFToken($_POST['csrf']);
+        $title = sanitize($_POST['title']);
+        $level = sanitize($_POST['level']);
+        $status = sanitize($_POST['status']);
+
+        // Update the course
+        executeNonQuery("UPDATE courses SET title = ?, level = ?, status = ? WHERE course_id = ?", 
+            [$title, $level, $status, $course_id]);
+
+        setFlashMessage('success', 'Course updated!');
         redirect('courses.php');
     }
 } else {
     setFlashMessage('error', 'Course ID is missing.');
     redirect('courses.php');
 }
-
-
-
-$sql = "
-SELECT c.* FROM courses c
-LEFT JOIN course_teachers ct ON ct.course_id = c.course_id
-LEFT JOIN course_sharing cs ON cs.course_id = c.course_id
-WHERE c.course_id = ?
-AND (
-    c.creator_id = :teacher_id
-    OR ct.teacher_id = :teacher_id
-    OR cs.shared_with_id = :teacher_id
-)
-";
-$course = executeQuerySingle($sql, [
-    'course_id' => $course_id,
-    'teacher_id' => $teacher_id
-]);
-
-
 ?>
+
 
 <!DOCTYPE html>
 <html>
@@ -74,12 +83,11 @@ $course = executeQuerySingle($sql, [
                     <p><strong>Description:</strong> <?= nl2br(htmlspecialchars($course['description'])) ?></p>
 
                     <a href="courses.php" class="btn btn-primary">Back to Courses</a>
+                    <a href="editCourse.php?id=<?= $course['course_id'] ?>" class="btn btn-primary">Edit Course</a>
                 </div>
 
             </main>
         </div>
     </div>
-
-    <?php include '../includes/footer.php'; ?>
 </body>
 </html>

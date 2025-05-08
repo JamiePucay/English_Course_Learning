@@ -15,15 +15,28 @@ $teacher_id = $user['user_id'];
 if (isset($_GET['id'])) {
     $course_id = (int) $_GET['id'];
 
-    // Fetch course details
-    $course = executeQuerySingle("SELECT * FROM courses WHERE course_id = ? AND creator_id = ?", [$course_id, $teacher_id]);
+    // This query allows the teacher to edit the course if they are the creator, assigned teacher, or it's shared with them
+    $sql = "SELECT c.* FROM courses c
+        LEFT JOIN course_teachers ct ON ct.course_id = c.course_id
+        LEFT JOIN course_sharing cs ON cs.course_id = c.course_id
+        WHERE c.course_id = :course_id
+        AND (
+            c.creator_id = :teacher_id
+            OR ct.teacher_id = :teacher_id
+            OR cs.shared_with_id = :teacher_id
+        )";
+
+    $course = executeQuerySingle($sql, [
+        'course_id' => $course_id,
+        'teacher_id' => $teacher_id
+    ]);
 
     if (!$course) {
         setFlashMessage('error', 'Course not found or you do not have permission to edit this course.');
         redirect('courses.php');
     }
 
-    // Handle form submission to update course
+    // Handle form submission
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         validateCSRFToken($_POST['csrf']);
         $title = sanitize($_POST['title']);
@@ -41,26 +54,8 @@ if (isset($_GET['id'])) {
     setFlashMessage('error', 'Course ID is missing.');
     redirect('courses.php');
 }
-
-
-$sql = "
-SELECT c.* FROM courses c
-LEFT JOIN course_teachers ct ON ct.course_id = c.course_id
-LEFT JOIN course_sharing cs ON cs.course_id = c.course_id
-WHERE c.course_id = ?
-AND (
-    c.creator_id = :teacher_id
-    OR ct.teacher_id = :teacher_id
-    OR cs.shared_with_id = :teacher_id
-)
-";
-$course = executeQuerySingle($sql, [
-    'course_id' => $course_id,
-    'teacher_id' => $teacher_id
-]);
-
-
 ?>
+
 
 <!DOCTYPE html>
 <html>
@@ -95,13 +90,18 @@ $course = executeQuerySingle($sql, [
                             <option value="inactive" <?= $course['status'] === 'inactive' ? 'selected' : '' ?>>Inactive</option>
                         </select>
                         <button type="submit">Update Course</button>
+                        <br>
+                        <h3>Manage Course Content</h3>
+                            <ul>
+                                <li><a href="lessons.php?course_id=<?= $course_id ?>">Lessons</a></li>
+                                <li><a href="assignments.php?course_id=<?= $course_id ?>">Assignments</a></li>
+                                <li><a href="quizzes.php?course_id=<?= $course_id ?>">Quizzes</a></li>
+                            </ul>
                     </form>
                 </div>
 
             </main>
         </div>
     </div>
-
-    <?php include '../includes/footer.php'; ?>
 </body>
 </html>

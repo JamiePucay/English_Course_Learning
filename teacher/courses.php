@@ -84,13 +84,12 @@ $courses = executeQueryAll($sql, ['teacher_id' => $teacher_id]);
                         </li>
                     <?php endforeach; ?>
                     </ul>
-
                 </div>
 
             </main>
         </div>
     </div>
 
-    <?php include '../includes/footer.php'; ?>
+
 </body>
 </html>
