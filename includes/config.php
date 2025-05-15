@@ -9,7 +9,7 @@ define('DB_NAME', 'english_lms');
 
 // Application settings
 define('APP_NAME', 'API BECI Cafe Campus International Language Academy');
-define('APP_URL', 'http://localhost/english-learning-system');
+define('APP_URL', 'http://localhost/english-course-learning');
 define('APP_VERSION', '1.0.0');
 define('APP_EMAIL', 'beci@beciedu.com');
 
@@ -19,7 +19,7 @@ define('MAX_FILE_SIZE', 10485760); // 10MB
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'mp3', 'mp4']);
 
 // Session settings
-define('SESSION_LIFETIME', 3600); // 1 hour
+define('SESSION_LIFETIME', 7200); // 1 hour
 
 // Debug mode (set to false in production)
 define('DEBUG_MODE', true);
@@ -34,7 +34,7 @@ define('ROLE_STUDENT', 'student');
 define('ROLE_LIBRARIAN', 'librarian');
 
 // Default password for new users (they will be prompted to change it)
-define('DEFAULT_PASSWORD', 'Password@123');
+define('DEFAULT_PASSWORD', 'password123');
 
 // Time zone
 date_default_timezone_set('UTC');

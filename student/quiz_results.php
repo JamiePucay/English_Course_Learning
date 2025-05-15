@@ -30,7 +30,7 @@ $attempt_id = $_GET['attempt_id'];
 // Get the attempt and verify it belongs to this student
 $attempt = db()->fetchOne(
     "SELECT qa.*, q.quiz_id, q.title as quiz_title, q.passing_score, q.time_limit, q.attempts_allowed,
-            c.course_id, c.course_name
+            c.course_id, c.title
      FROM quiz_attempts qa 
      JOIN quizzes q ON qa.quiz_id = q.quiz_id 
      JOIN courses c ON q.course_id = c.course_id
@@ -68,7 +68,7 @@ if ($attempt['status'] == 'in_progress') {
         // Refresh attempt data
         $attempt = db()->fetchOne(
             "SELECT qa.*, q.quiz_id, q.title as quiz_title, q.passing_score, q.time_limit, q.attempts_allowed,
-                    c.course_id, c.course_name
+                    c.course_id, c.title
              FROM quiz_attempts qa 
              JOIN quizzes q ON qa.quiz_id = q.quiz_id 
              JOIN courses c ON q.course_id = c.course_id
@@ -248,7 +248,7 @@ function calculateQuizScore($attempt_id) {
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="index.php">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="viewCourse.php?id=<?php echo $attempt['course_id']; ?>"><?php echo htmlspecialchars($attempt['course_name']); ?></a></li>
+                        <li class="breadcrumb-item"><a href="viewCourse.php?id=<?php echo $attempt['course_id']; ?>"><?php echo htmlspecialchars($attempt['title']); ?></a></li>
                         <li class="breadcrumb-item"><a href="quiz.php?id=<?php echo $attempt['course_id']; ?>">Quizzes</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Results</li>
                     </ol>
@@ -271,7 +271,7 @@ function calculateQuizScore($attempt_id) {
                             <div class="row">
                                 <div class="col-md-6">
                                     <h5>Quiz Information</h5>
-                                    <p><strong>Course:</strong> <?php echo htmlspecialchars($attempt['course_name']); ?></p>
+                                    <p><strong>Course:</strong> <?php echo htmlspecialchars($attempt['title']); ?></p>
                                     <p><strong>Attempt:</strong> <?php echo $attempt['attempt_number']; ?> of <?php echo $attempt['attempts_allowed']; ?></p>
                                     <p><strong>Started:</strong> <?php echo date('M d, Y H:i', strtotime($attempt['start_time'])); ?></p>
                                     <p><strong>Completed:</strong> 

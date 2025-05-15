@@ -521,65 +521,6 @@ function getStatusBadgeClass($status) {
 
 
 
-//----------- for student/quizzes.php ---------------------
-?>
-
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title></title>
-</head>
-<body>
-<script>
-// Initialize the timer
-function updateTimer() {
-    const minutes = Math.floor(timeRemaining / 60);
-    const seconds = timeRemaining % 60;
-                            
-    // Format the time display
-    const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    document.getElementById('timer').textContent = timeDisplay;
-                            
-    if (timeRemaining <= 0) {
-    // Time's up - submit the form
-    clearInterval(timerInterval);
-    alert('Time is up! Your answers will be submitted automatically.');
-    document.getElementById('quizForm').submit();
-    }
-                            
-    timeRemaining--;
-}
-
-
-// Auto-save functionality (every 30 seconds)
-function autoSave() {
-    // Get form data
-    const formData = new FormData(document.getElementById('quizForm'));
-    formData.append('action', 'autosave');
-                            
-    // Create AJAX request
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', 'quiz_autosave.php', true);
-    xhr.onload = function() {
-    if (xhr.status === 200) {
-        console.log('Auto-saved successfully.');
-        }
-    };
-xhr.send(formData);
-}
-</script>
-</body>
-</html>
-
-
-
-<?php
-
-
-
-
 // ---------for teacher/index.php--------------
 
 function executeQueryAll($sql, $params = []) {

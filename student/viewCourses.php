@@ -328,7 +328,7 @@ $recentProgress = db()->fetchAll(
                                         <div>
                                             <strong><?php echo htmlspecialchars($quiz['title']); ?></strong><br>
                                         </div>
-                                        <a href="../quizzes.php?id=<?php echo $quiz['quiz_id']; ?>" class="btn btn-sm btn-warning">Take Quiz</a>
+                                        <a href="quizzes.php?id=<?php echo $quiz['quiz_id']; ?>" class="btn btn-sm btn-warning">Take Quiz</a>
                                     </li>
                                 <?php endforeach; ?>
                             </ul>

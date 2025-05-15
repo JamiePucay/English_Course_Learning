@@ -52,18 +52,7 @@ if ($quiz_id) {
         setFlashMessage('error', 'Quiz not found or not available');
         redirect("viewCourses.php?id={$course_id}");
     }
-    
-    // Check if student has access to this quiz
-    $access = db()->fetchOne(
-        "SELECT * FROM student_quiz_access 
-         WHERE student_id = :student_id AND quiz_id = :quiz_id AND is_accessible = 1",
-        ['student_id' => $student_id, 'quiz_id' => $quiz_id]
-    );
-    
-    if (!$access) {
-        setFlashMessage('error', 'You do not have access to this quiz yet');
-        redirect("viewCourses.php?id={$course_id}");
-    }
+
     
     // Check if the student has already reached the maximum attempts allowed
     $attempts_count = db()->fetchOne(
@@ -163,35 +152,40 @@ if ($quiz_id) {
             switch ($question['question_type']) {
                 case 'multiple_choice':
                 case 'true_false':
-                    if (isset($_POST["question_{$question_id}"])) {
-                        $selected_option_id = $_POST["question_{$question_id}"];
-                        
-                        // Check if the selected option is correct
-                        $option = db()->fetchOne(
-                            "SELECT * FROM answer_options 
-                             WHERE option_id = :option_id AND question_id = :question_id",
-                            ['option_id' => $selected_option_id, 'question_id' => $question_id]
-                        );
-                        
-                        $is_correct = $option && $option['is_correct'];
-                        $points_earned = $is_correct ? $question['points'] : 0;
-                        $score += $points_earned;
-                        
-                        // Save the response
-                        db()->query(
-                            "INSERT INTO student_responses 
-                             (attempt_id, question_id, selected_option_id, is_correct, points_earned) 
-                             VALUES (:attempt_id, :question_id, :selected_option_id, :is_correct, :points_earned)",
-                            [
-                                'attempt_id' => $attempt_id,
-                                'question_id' => $question_id,
-                                'selected_option_id' => $selected_option_id,
-                                'is_correct' => $is_correct ? 1 : 0,
-                                'points_earned' => $points_earned
-                            ]
-                        );
-                    }
-                    break;
+if (isset($_POST["question_{$question_id}"])) {
+    $selected_option_id = $_POST["question_{$question_id}"];
+
+    // Fetch the option to verify it's valid and belongs to the question
+    $option = db()->fetchOne(
+        "SELECT * FROM answer_options 
+         WHERE option_id = :option_id AND question_id = :question_id",
+        ['option_id' => $selected_option_id, 'question_id' => $question_id]
+    );
+
+    if ($option) {
+        $is_correct = $option['is_correct'];
+        $points_earned = $is_correct ? $question['points'] : 0;
+        $score += $points_earned;
+
+        db()->query(
+            "INSERT INTO student_responses 
+             (attempt_id, question_id, selected_option_id, is_correct, points_earned) 
+             VALUES (:attempt_id, :question_id, :selected_option_id, :is_correct, :points_earned)",
+            [
+                'attempt_id' => $attempt_id,
+                'question_id' => $question_id,
+                'selected_option_id' => $selected_option_id,
+                'is_correct' => $is_correct ? 1 : 0,
+                'points_earned' => $points_earned
+            ]
+        );
+    } else {
+        // Optional: log invalid selected_option_id
+        error_log("Invalid selected_option_id: $selected_option_id for question_id: $question_id");
+        // Optionally skip or throw a user-friendly error
+    }
+}
+
                     
                 case 'fill_blank':
                 case 'essay':
@@ -243,12 +237,11 @@ if ($quiz_id) {
 } else {
     // If no quiz_id is provided, show a list of available quizzes for this course
     $quizzes = db()->fetchAll(
-        "SELECT q.*, sqa.is_accessible 
+        "SELECT q.* 
          FROM quizzes q
-         LEFT JOIN student_quiz_access sqa ON q.quiz_id = sqa.quiz_id AND sqa.student_id = :student_id
          WHERE q.course_id = :course_id
          ORDER BY q.sequence_order",
-        ['course_id' => $course_id, 'student_id' => $student_id]
+        ['course_id' => $course_id]
     );
 }
 ?>
@@ -550,9 +543,9 @@ if ($quiz_id) {
                                             $latest_attempt_status = $attempts[0]['status'];
                                         }
                                         
-                                        $can_take_quiz = ($quiz['is_accessible'] && 
-                                                        ($current_attempts < $quiz['attempts_allowed'] || 
-                                                         ($current_attempts > 0 && $latest_attempt_status == 'in_progress')));
+                                        // Remove accessibility check - all quizzes are accessible
+                                        $can_take_quiz = ($current_attempts < $quiz['attempts_allowed'] || 
+                                                          ($current_attempts > 0 && $latest_attempt_status == 'in_progress'));
                                         ?>
                                         
                                         <div class="list-group-item">
@@ -576,9 +569,9 @@ if ($quiz_id) {
                                                         <a href="quizzes.php?id=<?php echo $course_id; ?>&quiz_id=<?php echo $quiz['quiz_id']; ?>" class="btn btn-primary">
                                                             <?php echo ($current_attempts > 0 && $latest_attempt_status == 'in_progress') ? 'Continue Quiz' : 'Start Quiz'; ?>
                                                         </a>
-                                                        <?php else: ?>
+                                                    <?php else: ?>
                                                         <button class="btn btn-secondary" disabled>
-                                                            Quiz Unavailable
+                                                            Maximum Attempts Reached
                                                         </button>
                                                     <?php endif; ?>
                                                 </div>
@@ -594,6 +587,45 @@ if ($quiz_id) {
         </div>
     </div>
 </div>
+<script>
+// Initialize the timer
+function updateTimer() {
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+                            
+    // Format the time display
+    const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    document.getElementById('timer').textContent = timeDisplay;
+                            
+    if (timeRemaining <= 0) {
+    // Time's up - submit the form
+    clearInterval(timerInterval);
+    alert('Time is up! Your answers will be submitted automatically.');
+    document.getElementById('quizForm').submit();
+    }
+                            
+    timeRemaining--;
+}
+
+
+// Auto-save functionality (every 30 seconds)
+function autoSave() {
+    // Get form data
+    const formData = new FormData(document.getElementById('quizForm'));
+    formData.append('action', 'autosave');
+                            
+    // Create AJAX request
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'quiz_autosave.php', true);
+    xhr.onload = function() {
+    if (xhr.status === 200) {
+        console.log('Auto-saved successfully.');
+        }
+    };
+xhr.send(formData);
+}
+
+</script>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>

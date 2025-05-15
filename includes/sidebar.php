@@ -40,6 +40,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
                 <li class="nav-item">
+                    <a class="nav-link <?php echo $currentPage == 'enrollments.php' ? 'active' : ''; ?>" href="../teacher/enrollments.php">
+                        <i class="fas fa-book"></i> Enrollments
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link <?php echo $currentPage == 'courses.php' ? 'active' : ''; ?>" href="../teacher/courses.php">
                         <i class="fas fa-book"></i> Courses
                     </a>

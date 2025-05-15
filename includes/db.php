@@ -106,6 +106,33 @@ class Database {
         $this->query($sql, $data);
         return $this->conn->lastInsertId();
     }
+
+    public function update($table, $data, $where) {
+    $set = [];
+    foreach ($data as $column => $value) {
+        $set[] = "{$column} = :set_{$column}";
+    }
+
+    $conditions = [];
+    foreach ($where as $column => $value) {
+        $conditions[] = "{$column} = :where_{$column}";
+    }
+
+    $sql = "UPDATE {$table} SET " . implode(', ', $set) . " WHERE " . implode(' AND ', $conditions);
+
+    // Prefix keys to avoid collisions
+    $params = [];
+    foreach ($data as $column => $value) {
+        $params["set_{$column}"] = $value;
+    }
+    foreach ($where as $column => $value) {
+        $params["where_{$column}"] = $value;
+    }
+
+    $stmt = $this->query($sql, $params);
+    return $stmt->rowCount();
+}
+
 }
 
 // Create a helper function for easy access

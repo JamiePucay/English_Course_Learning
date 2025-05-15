@@ -26,8 +26,10 @@ $course = db()->fetchOne(
      FROM courses c
      LEFT JOIN course_teachers ct ON c.course_id = ct.course_id
      LEFT JOIN users u ON ct.teacher_id = u.user_id
-     LEFT JOIN enrollments e ON c.course_id = e.course_id AND e.student_id = :student_id
-     WHERE c.course_id = :course_id AND (e.status IS NULL OR e.status != 'dropped')",
+     LEFT JOIN enrollments e ON c.course_id = e.course_id
+     WHERE c.course_id = :course_id 
+       AND (e.status IS NULL OR e.status != 'dropped')
+       AND (e.student_id = :student_id OR e.student_id IS NULL)",
     ['course_id' => $course_id, 'student_id' => $student_id]
 );
 
@@ -46,33 +48,13 @@ error_log("Course Data: " . print_r($course, true));
 
 // Get all lessons for this course
 $lessons = db()->fetchAll(
-    "SELECT l.*, 
-        CASE 
-            WHEN sla.is_accessible = TRUE THEN 'accessible'
-            WHEN l.status = 'locked' THEN 'locked'
-            ELSE 'active'
-        END AS access_status
+    "SELECT * 
      FROM lessons l
-     LEFT JOIN student_lesson_access sla ON l.lesson_id = sla.lesson_id AND sla.student_id = :student_id
      WHERE l.course_id = :course_id
      ORDER BY l.sequence_order ASC",
-    ['course_id' => $course_id, 'student_id' => $student_id]
+    ['course_id' => $course_id]
 );
 
-// Function to check if a lesson is accessible by the student
-function isLessonAccessible($lesson, $student_id) {
-    // If lesson is active by default and no specific access rule exists
-    if ($lesson['status'] === 'active' && $lesson['access_status'] !== 'locked') {
-        return true;
-    }
-    
-    // If there's a specific access rule for this student
-    if ($lesson['access_status'] === 'accessible') {
-        return true;
-    }
-    
-    return false;
-}
 
 // Get the current lesson content if a lesson is selected
 $current_lesson = null;
@@ -80,28 +62,12 @@ $lesson_content = [];
 
 if ($lesson_id) {
     $current_lesson = db()->fetchOne(
-        "SELECT l.*, 
-            CASE 
-                WHEN sla.is_accessible = TRUE THEN 'accessible'
-                WHEN l.status = 'locked' THEN 'locked'
-                ELSE 'active'
-            END AS access_status
+        "SELECT * 
          FROM lessons l
-         LEFT JOIN student_lesson_access sla ON l.lesson_id = sla.lesson_id AND sla.student_id = :student_id
          WHERE l.lesson_id = :lesson_id AND l.course_id = :course_id",
-        ['lesson_id' => $lesson_id, 'course_id' => $course_id, 'student_id' => $student_id]
+        ['lesson_id' => $lesson_id, 'course_id' => $course_id]
     );
     
-    // Check if lesson exists and is accessible
-    if (!$current_lesson) {
-        setFlashMessage('error', 'Lesson not found');
-        redirect("lessons.php?id=" . $course_id);
-    }
-    
-    if (!isLessonAccessible($current_lesson, $student_id)) {
-        setFlashMessage('error', 'This lesson is currently locked');
-        redirect("lessons.php?id=" . $course_id);
-    }
     
     // Get lesson content/attachments
     $lesson_content = db()->fetchAll(
@@ -110,15 +76,6 @@ if ($lesson_id) {
          ORDER BY sequence_order ASC",
         ['lesson_id' => $lesson_id]
     );
-    
-    // Record that the student has accessed this lesson (could be used for tracking progress)
-    // This is a simple implementation - you might want to add more sophisticated tracking
-    db()->query(
-        "INSERT INTO student_lesson_access (student_id, lesson_id, is_accessible, unlocked_at)
-         VALUES (:student_id, :lesson_id, TRUE, NOW())
-         ON DUPLICATE KEY UPDATE unlocked_at = NOW()",
-        ['student_id' => $student_id, 'lesson_id' => $lesson_id]
-    );
 }
 
 // Get previous and next lesson for navigation
@@ -126,26 +83,24 @@ $prev_lesson = null;
 $next_lesson = null;
 
 if ($lesson_id) {
-    // Find the previous accessible lesson
+    // Find the previous lesson
     foreach ($lessons as $index => $lesson) {
         if ($lesson['lesson_id'] == $lesson_id && $index > 0) {
             for ($i = $index - 1; $i >= 0; $i--) {
-                if (isLessonAccessible($lessons[$i], $student_id)) {
                     $prev_lesson = $lessons[$i];
                     break;
-                }
+                
             }
         }
     }
     
-    // Find the next accessible lesson
+    // Find the next lesson
     foreach ($lessons as $index => $lesson) {
         if ($lesson['lesson_id'] == $lesson_id && $index < count($lessons) - 1) {
             for ($i = $index + 1; $i < count($lessons); $i++) {
-                if (isLessonAccessible($lessons[$i], $student_id)) {
                     $next_lesson = $lessons[$i];
                     break;
-                }
+                
             }
         }
     }
@@ -178,14 +133,10 @@ include 'header.php';
                 <div class="card-body p-0">
                     <div class="list-group">
                         <?php foreach ($lessons as $lesson): ?>
-                            <?php $is_accessible = isLessonAccessible($lesson, $student_id); ?>
-                            <a href="<?php echo $is_accessible ? "lessons.php?id={$course_id}&lesson_id={$lesson['lesson_id']}" : "#"; ?>" 
-                               class="list-group-item list-group-item-action <?php echo ($lesson_id == $lesson['lesson_id']) ? 'active' : ''; ?> <?php echo !$is_accessible ? 'disabled' : ''; ?>">
+                            <a href="lessons.php?id=<?php echo $course_id; ?>&lesson_id=<?php echo $lesson['lesson_id']; ?>" 
+                               class="list-group-item list-group-item-action <?php echo ($lesson_id == $lesson['lesson_id']) ? 'active' : ''; ?>">
                                 <div class="d-flex w-100 justify-content-between">
                                     <h6 class="mb-1"><?php echo htmlspecialchars($lesson['title']); ?></h6>
-                                    <?php if (!$is_accessible): ?>
-                                        <span class="badge badge-secondary"><i class="fas fa-lock"></i></span>
-                                    <?php endif; ?>
                                 </div>
                                 <?php if (isset($lesson['duration']) && $lesson['duration']): ?>
                                     <small><?php echo $lesson['duration']; ?> min</small>
@@ -284,14 +235,9 @@ include 'header.php';
                         <p>Select a lesson from the menu on the left to begin.</p>
                         
                         <?php if (count($lessons) > 0): ?>
-                            <?php foreach ($lessons as $lesson): ?>
-                                <?php if (isLessonAccessible($lesson, $student_id)): ?>
-                                    <a href="lessons.php?id=<?php echo $course_id; ?>&lesson_id=<?php echo $lesson['lesson_id']; ?>" class="btn btn-primary mt-3">
-                                        Start with first lesson: <?php echo htmlspecialchars($lesson['title']); ?>
-                                    </a>
-                                    <?php break; ?>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
+                            <a href="lessons.php?id=<?php echo $course_id; ?>&lesson_id=<?php echo $lessons[0]['lesson_id']; ?>" class="btn btn-primary mt-3">
+                                Start with first lesson: <?php echo htmlspecialchars($lessons[0]['title']); ?>
+                            </a>
                         <?php else: ?>
                             <div class="alert alert-info">
                                 No lessons available for this course yet. Please check back later.
