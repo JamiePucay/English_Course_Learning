@@ -71,20 +71,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enroll'])) {
             'enrollment_date' => date('Y-m-d H:i:s'),
             'status' => 'pending'
         ]);
-        
-        if ($enrollmentId) {
-            // Add notification for teacher
-            Auth::createNotification(
-                $teacher_id,
-                'New Enrollment Request',
-                "Student {$user['first_name']} {$user['last_name']} has requested to enroll in your course.",
-                'enrollment'
-            );
-            
-            setFlashMessage('success', 'Enrollment request submitted successfully. Please wait for approval.');
-        } else {
-            setFlashMessage('error', 'Failed to submit enrollment request. Please try again.');
-        }
     }
     
     redirect('index.php');

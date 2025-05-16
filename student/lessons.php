@@ -216,13 +216,13 @@ include 'header.php';
                                         <?php elseif ($content['content_type'] == 'video' && !empty($content['file_path'])): ?>
                                             <div class="mt-2">
                                                 <video class="w-100" controls>
-                                                    <source src="../content/attachments/<?php echo htmlspecialchars($content['file_path']); ?>" type="video/mp4">
+                                                    <source src="<?php echo htmlspecialchars($content['file_path']); ?>" type="video/mp4">
                                                     Your browser does not support the video tag.
                                                 </video>
                                             </div>
                                         <?php elseif (($content['content_type'] == 'document' || $content['content_type'] == 'other') && !empty($content['file_path'])): ?>
                                             <div class="mt-2">
-                                                <a href="../content/attachments/<?php echo htmlspecialchars($content['file_path']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <a href="<?php echo htmlspecialchars($content['file_path']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
                                                     <i class="fas fa-download"></i> Download
                                                 </a>
                                             </div>

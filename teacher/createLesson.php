@@ -28,13 +28,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status = in_array($_POST['status'], ['active', 'locked']) ? $_POST['status'] : 'active';
 
     // Insert the lesson
-    $lesson_id = executeQuerySingle("INSERT INTO lessons (course_id, title, content, sequence_order, duration, status) 
+    executeNonQuery("INSERT INTO lessons (course_id, title, content, sequence_order, duration, status) 
         VALUES (?, ?, ?, ?, ?, ?)", 
         [$course_id, $title, $content, $sequence_order, $duration, $status]);
 
+    $lesson_id = db()->lastInsertId();
+
+
+    $uploadErrors = [];
+    $successfulUploads = 0;
+    
     // Handle file uploads
     if (!empty($_FILES['attachments']['name'][0])) {
+        // Create upload directory if it doesn't exist
+        if (!is_dir(UPLOAD_DIR)) {
+            mkdir(UPLOAD_DIR, 0755, true);
+        }
+        
+        // Start sequence from 1
+        $nextSequenceOrder = 1;
+        
         foreach ($_FILES['attachments']['name'] as $i => $name) {
+            if ($_FILES['attachments']['error'][$i] !== UPLOAD_ERR_OK) {
+                $errorMessage = getFileUploadErrorMessage($_FILES['attachments']['error'][$i]);
+                $uploadErrors[] = "Error uploading {$name}: {$errorMessage}";
+                continue;
+            }
+            
             $file = [
                 'name'     => $_FILES['attachments']['name'][$i],
                 'type'     => $_FILES['attachments']['type'][$i],
@@ -43,29 +63,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'size'     => $_FILES['attachments']['size'][$i]
             ];
 
+            // Validate file extension
+            $fileExt = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            if (!in_array($fileExt, ALLOWED_EXTENSIONS)) {
+                $uploadErrors[] = "File type '{$fileExt}' not allowed for {$file['name']}";
+                continue;
+            }
+            
+            // Validate file size
+            if ($file['size'] > MAX_FILE_SIZE) {
+                $maxSizeMB = MAX_FILE_SIZE / 1048576; // Convert to MB
+                $uploadErrors[] = "File {$file['name']} exceeds maximum size of {$maxSizeMB} MB";
+                continue;
+            }
+
             $upload = uploadFile($file, UPLOAD_DIR);
             if ($upload) {
                 $content_type = getContentTypeByExtension($upload['extension']);
-                executeNonQuery(
+                $result = executeNonQuery(
                     "INSERT INTO lesson_content (lesson_id, content_type, content_title, file_path, sequence_order, uploaded_by) 
                      VALUES (?, ?, ?, ?, ?, ?)",
-                    [$lesson_id, $content_type, $upload['original_name'], $upload['new_name'], 0, $teacher_id]
+                    [$lesson_id, $content_type, $upload['original_name'], $upload['path'], $nextSequenceOrder, $teacher_id]
                 );
+                
+                if ($result) {
+                    $successfulUploads++;
+                    $nextSequenceOrder++;
+                } else {
+                    $uploadErrors[] = "Database error: Failed to save attachment {$upload['original_name']}";
+                }
+            } else {
+                $uploadErrors[] = "Failed to upload {$file['name']}";
             }
         }
     }
-    setFlashMessage('success', 'Lesson created');
+    
+    // Set appropriate flash messages
+    if (!empty($uploadErrors)) {
+        // Convert array of errors to string
+        $errorString = implode(', ', $uploadErrors);
+        setFlashMessage('error', "Some files could not be uploaded: {$errorString}");
+    }
+    
+    if ($successfulUploads > 0) {
+        setFlashMessage('success', "Lesson created successfully with {$successfulUploads} attachment(s)");
+    } else {
+        setFlashMessage('success', 'Lesson created successfully');
+    }
+    
     redirect("editCourse.php?id=$course_id");
 }
 
+/**
+ * Get error message for file upload error code
+ *
+ * @param int $error Error code from $_FILES['file']['error']
+ * @return string Error message
+ */
+function getFileUploadErrorMessage($error) {
+    switch ($error) {
+        case UPLOAD_ERR_INI_SIZE:
+            return "The uploaded file exceeds the upload_max_filesize directive in php.ini";
+        case UPLOAD_ERR_FORM_SIZE:
+            return "The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form";
+        case UPLOAD_ERR_PARTIAL:
+            return "The uploaded file was only partially uploaded";
+        case UPLOAD_ERR_NO_FILE:
+            return "No file was uploaded";
+        case UPLOAD_ERR_NO_TMP_DIR:
+            return "Missing a temporary folder";
+        case UPLOAD_ERR_CANT_WRITE:
+            return "Failed to write file to disk";
+        case UPLOAD_ERR_EXTENSION:
+            return "A PHP extension stopped the file upload";
+        default:
+            return "Unknown upload error";
+    }
+}
+
+/**
+ * Map file extension to content type
+ * 
+ * @param string $ext File extension
+ * @return string Content type
+ */
 function getContentTypeByExtension($ext) {
     $map = [
-        'jpg' => 'image', 'jpeg' => 'image', 'png' => 'image', 'gif' => 'image',
-        'pdf' => 'document', 'doc' => 'document', 'docx' => 'document',
-        'ppt' => 'document', 'pptx' => 'document',
-        'mp3' => 'audio', 'mp4' => 'video'
+        // Images
+        'jpg' => 'image', 'jpeg' => 'image', 'png' => 'image', 'gif' => 'image', 'svg' => 'image',
+        // Documents
+        'pdf' => 'document', 'doc' => 'document', 'docx' => 'document', 'txt' => 'document',
+        'ppt' => 'document', 'pptx' => 'document', 'xlsx' => 'document', 'xls' => 'document',
+        // Audio
+        'mp3' => 'audio', 'wav' => 'audio', 'ogg' => 'audio',
+        // Video
+        'mp4' => 'video', 'avi' => 'video', 'mov' => 'video', 'wmv' => 'video'
     ];
-    return $map[$ext] ?? 'other';
+    return $map[strtolower($ext)] ?? 'other';
 }
 ?>
 
@@ -86,22 +180,37 @@ function getContentTypeByExtension($ext) {
 
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <div class="card mb-4">
+                    <div class="card mb-4 w-100">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0">Create a Lesson</h5>
                         </div>
                         <div class="card-body">
-                            <!-- HTML Form -->
+                            <?php 
+                            // Display flash messages
+                            if (isset($_SESSION['flash_message'])): 
+                                $messageType = isset($_SESSION['flash_message_type']) ? $_SESSION['flash_message_type'] : 'info';
+                                $message = $_SESSION['flash_message'];
+                                // Check if message is an array and convert to string if needed
+                                if (is_array($message)) {
+                                    $message = implode('<br>', $message);
+                                }
+                            ?>
+                                <div class="alert alert-<?= $messageType ?> alert-dismissible fade show">
+                                    <?= $message ?>
+                                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                                </div>
+                                <?php unset($_SESSION['flash_message'], $_SESSION['flash_message_type']); ?>
+                            <?php endif; ?>
+                            
                             <form action="" method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf" value="<?= createCSRFToken() ?>">
-                                <input type="hidden" name="course_id" value="<?= $course_id ?>">
                                 <div class="form-group">
                                     <label>Title</label>
-                                    <input type="text" name="title" required class="form-control">
+                                    <input type="text" name="title" class="form-control" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Sequence Order</label>
-                                    <input type="number" name="sequence_order" required class="form-control">
+                                    <input type="number" name="sequence_order" class="form-control" required>
                                 </div>
                                 <div class="form-group">
                                     <label>Duration (minutes)</label>
@@ -116,14 +225,30 @@ function getContentTypeByExtension($ext) {
                                 </div>
                                 <div class="form-group">
                                     <label>Lesson Description</label>
-                                    <textarea name="content" rows="5" class="form-control"></textarea>
+                                    <textarea name="content" class="form-control" rows="5"></textarea>
                                 </div>
+                                
                                 <div class="form-group">
                                     <label>Upload Files</label>
-                                    <input type="file" name="attachments[]" multiple class="form-control">
-                                    <small>Allowed: <?= implode(', ', ALLOWED_EXTENSIONS) ?> | Max size: <?= MAX_FILE_SIZE / 50000000 ?>MB</small>
+                                    <div class="custom-file">
+                                        <input type="file" name="attachments[]" multiple class="custom-file-input" id="customFile">
+                                        <label class="custom-file-label" for="customFile">Choose files</label>
+                                    </div>
+                                    <small class="form-text text-muted">
+                                        Allowed file types: 
+                                        <?= implode(', ', ALLOWED_EXTENSIONS) ?>. 
+                                        Maximum size: <?= MAX_FILE_SIZE / 1048576 ?> MB.
+                                    </small>
                                 </div>
-                                <button type="submit" class="btn btn-success">Create Lesson</button>
+                                
+                                <div class="form-group mt-4">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save"></i> Create Lesson
+                                    </button>
+                                    <a href="editCourse.php?id=<?= $course_id ?>" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left"></i> Back to Course
+                                    </a>
+                                </div>
                             </form>
                         </div>
                     </div>
@@ -131,7 +256,26 @@ function getContentTypeByExtension($ext) {
             </main>        
         </div>
     </div>       
-</div>
 
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script>
+// Display file name when file is selected
+document.querySelector('.custom-file-input').addEventListener('change', function(e) {
+    var files = [];
+    for (var i = 0; i < this.files.length; i++) {
+        files.push(this.files[i].name);
+    }
+    var fileLabel = document.querySelector('.custom-file-label');
+    if (files.length > 1) {
+        fileLabel.textContent = files.length + ' files selected';
+    } else if (files.length === 1) {
+        fileLabel.textContent = files[0];
+    } else {
+        fileLabel.textContent = 'Choose files';
+    }
+});
+</script>
 </body>
 </html>

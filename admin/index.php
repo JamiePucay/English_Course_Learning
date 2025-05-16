@@ -93,18 +93,6 @@ $notifications = db()->fetchAll(
             <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">Admin Dashboard</h1>
-                    <div class="btn-toolbar mb-2 mb-md-0">
-                        <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-download"></i> Export
-                            </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                <li><a class="dropdown-item" href="#">Export as PDF</a></li>
-                                <li><a class="dropdown-item" href="#">Export as Excel</a></li>
-                                <li><a class="dropdown-item" href="#">Export as CSV</a></li>
-                            </ul>
-                        </div>
-                    </div>
                 </div>
                 
                 <?php displayFlashMessage(); ?>
@@ -182,7 +170,6 @@ $notifications = db()->fetchAll(
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 font-weight-bold text-primary">Recent Activities</h6>
-                                <a href="../admin/reports/activity-logs.php" class="btn btn-sm btn-primary">View All</a>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
@@ -227,7 +214,6 @@ $notifications = db()->fetchAll(
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 font-weight-bold text-primary">New Users</h6>
-                                <a href="../admin/users/index.php" class="btn btn-sm btn-primary">View All</a>
                             </div>
                             <div class="card-body">
                                 <ul class="list-group list-group-flush">
@@ -258,7 +244,6 @@ $notifications = db()->fetchAll(
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 font-weight-bold text-primary">Popular Courses</h6>
-                                <a href="../admin/courses/index.php" class="btn btn-sm btn-primary">View All</a>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
@@ -301,7 +286,6 @@ $notifications = db()->fetchAll(
                         <div class="card shadow mb-4">
                             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                                 <h6 class="m-0 font-weight-bold text-primary">Upcoming Exams</h6>
-                                <a href="../admin/exams/index.php" class="btn btn-sm btn-primary">View All</a>
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">

@@ -193,7 +193,6 @@ $all_courses = executeQueryAll($all_courses_sql, $params);
                                             <th>Level</th>
                                             <th>Created By</th>
                                             <th>Created Date</th>
-                                            <th>Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -206,11 +205,6 @@ $all_courses = executeQueryAll($all_courses_sql, $params);
                                                 </td>
                                                 <td><?= htmlspecialchars($course['first_name'] . ' ' . $course['last_name']) ?></td>
                                                 <td><?= formatDate($course['created_at']) ?></td>
-                                                <td>
-                                                    <a href="viewCourse.php?id=<?= $course['course_id'] ?>" class="btn btn-info btn-sm">
-                                                        <i class="fas fa-eye"></i> View
-                                                    </a>
-                                                </td>
                                             </tr>
                                         <?php endforeach; ?>
                                     </tbody>

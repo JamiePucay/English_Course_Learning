@@ -17,10 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = sanitize($_POST['title']);
     $level = sanitize($_POST['level']);
     $status = 'active'; // Default to active status
+    $description = sanitize($_POST['description']);
     
     // Insert the course with the creator_id as teacher_id
-    executeNonQuery("INSERT INTO courses (title, level, creator_id, status, created_at) VALUES (?, ?, ?, ?, NOW())", 
-        [$title, $level, $teacher_id, $status]);
+    executeNonQuery("INSERT INTO courses (title, level, creator_id, status, description, created_at) VALUES (?, ?, ?, ?, ?, NOW())", 
+        [$title, $level, $teacher_id, $status, $description]);
 
     setFlashMessage('success', 'Course created!');
     redirect('courses.php');
@@ -47,23 +48,43 @@ $courses = executeQueryAll($sql, ['teacher_id' => $teacher_id]);
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title></title>
+    <title>Create a Course</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <link rel="stylesheet" href="../public/assets/style.css">
 </head>
 <body>
-    <h2>Create a course</h2>
-        <form method="POST">
-            <input type="hidden" name="csrf" value="<?= createCSRFToken() ?>">
-            <input type="text" name="title" placeholder="Course Title" required>
-            <select name="level" required>
-                <option value="beginner">Beginner</option>
-                <option value="elementary">Elementary</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="upper-intermediate">Upper-Intermediate</option>
-                <option value="advanced">Advanced</option>
-                <option value="proficiency">Proficiency</option>
-            </select>
-            <button type="submit">Add Course</button>
-        </form>
+    <div class="container-fluid">
+        <div class="row">
+            <?php include '../includes/sidebar.php'; ?>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <div class="card mb-4 w-100">
+                        <div class="card-header bg-primary text-white">
+                            <h2>Create a course</h2>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <input type="hidden" name="csrf" value="<?= createCSRFToken() ?>">
+                                <input type="text" name="title" placeholder="Course Title" required>
+                                <select name="level" required>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="elementary">Elementary</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="upper-intermediate">Upper-Intermediate</option>
+                                    <option value="advanced">Advanced</option>
+                                    <option value="proficiency">Proficiency</option>
+                                </select>
+                                <input type="text" name="description" placeholder="Description" required>
+                                <button type="submit">Add Course</button>
+                            </form>
+                        </div> 
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>       
 
 </body>
 </html>
