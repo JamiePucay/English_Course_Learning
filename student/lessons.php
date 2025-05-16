@@ -21,15 +21,16 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 
 $course_id = $_GET['id'];
 
+// The issue is in this query - we need to fix it to properly check enrollment
 $course = db()->fetchOne(
-    "SELECT c.*, u.first_name, u.last_name, e.status as enrollment_status, e.enrollment_date
+    "SELECT c.*, u.first_name, u.last_name 
      FROM courses c
-     LEFT JOIN course_teachers ct ON c.course_id = ct.course_id
-     LEFT JOIN users u ON ct.teacher_id = u.user_id
-     LEFT JOIN enrollments e ON c.course_id = e.course_id
+     JOIN enrollments e ON c.course_id = e.course_id
+     JOIN course_teachers ct ON c.course_id = ct.course_id
+     JOIN users u ON ct.teacher_id = u.user_id
      WHERE c.course_id = :course_id 
-       AND (e.status IS NULL OR e.status != 'dropped')
-       AND (e.student_id = :student_id OR e.student_id IS NULL)",
+     AND e.student_id = :student_id
+     AND e.status != 'dropped'",
     ['course_id' => $course_id, 'student_id' => $student_id]
 );
 
@@ -41,11 +42,6 @@ if (!$course) {
 // Check if a lesson ID is provided for viewing a specific lesson
 $lesson_id = isset($_GET['lesson_id']) && is_numeric($_GET['lesson_id']) ? $_GET['lesson_id'] : null;
 
-// Debug - temporarily bypass authentication to help identify the issue
-error_log("Course ID: " . $course_id);
-error_log("Student ID: " . $student_id);
-error_log("Course Data: " . print_r($course, true));
-
 // Get all lessons for this course
 $lessons = db()->fetchAll(
     "SELECT * 
@@ -54,7 +50,6 @@ $lessons = db()->fetchAll(
      ORDER BY l.sequence_order ASC",
     ['course_id' => $course_id]
 );
-
 
 // Get the current lesson content if a lesson is selected
 $current_lesson = null;
@@ -67,7 +62,6 @@ if ($lesson_id) {
          WHERE l.lesson_id = :lesson_id AND l.course_id = :course_id",
         ['lesson_id' => $lesson_id, 'course_id' => $course_id]
     );
-    
     
     // Get lesson content/attachments
     $lesson_content = db()->fetchAll(
@@ -87,9 +81,8 @@ if ($lesson_id) {
     foreach ($lessons as $index => $lesson) {
         if ($lesson['lesson_id'] == $lesson_id && $index > 0) {
             for ($i = $index - 1; $i >= 0; $i--) {
-                    $prev_lesson = $lessons[$i];
-                    break;
-                
+                $prev_lesson = $lessons[$i];
+                break;
             }
         }
     }
@@ -98,9 +91,8 @@ if ($lesson_id) {
     foreach ($lessons as $index => $lesson) {
         if ($lesson['lesson_id'] == $lesson_id && $index < count($lessons) - 1) {
             for ($i = $index + 1; $i < count($lessons); $i++) {
-                    $next_lesson = $lessons[$i];
-                    break;
-                
+                $next_lesson = $lessons[$i];
+                break;
             }
         }
     }
@@ -178,46 +170,59 @@ include 'header.php';
                         </div>
                         
                         <!-- Lesson attachments/additional content -->
-                        <?php if (count($lesson_content) > 0): ?>
+                        <?php if (!empty($lesson_content)): ?>
                             <h5 class="mt-4">Lesson Materials</h5>
                             <div class="list-group">
                                 <?php foreach ($lesson_content as $content): ?>
                                     <div class="list-group-item">
                                         <div class="d-flex w-100 justify-content-between">
                                             <h6 class="mb-1">
-                                                <?php if ($content['content_type'] == 'text'): ?>
-                                                    <i class="fas fa-file-alt text-primary mr-2"></i>
-                                                <?php elseif ($content['content_type'] == 'image'): ?>
-                                                    <i class="fas fa-image text-success mr-2"></i>
-                                                <?php elseif ($content['content_type'] == 'video'): ?>
-                                                    <i class="fas fa-video text-danger mr-2"></i>
-                                                <?php elseif ($content['content_type'] == 'document'): ?>
-                                                    <i class="fas fa-file-pdf text-warning mr-2"></i>
-                                                <?php else: ?>
-                                                    <i class="fas fa-file text-secondary mr-2"></i>
-                                                <?php endif; ?>
+                                                <?php
+                                                $icon = 'fa-file';
+                                                $iconColor = 'secondary';
+                                                
+                                                switch ($content['content_type']) {
+                                                    case 'text':
+                                                        $icon = 'fa-file-alt';
+                                                        $iconColor = 'primary';
+                                                        break;
+                                                    case 'image':
+                                                        $icon = 'fa-image';
+                                                        $iconColor = 'success';
+                                                        break;
+                                                    case 'video':
+                                                        $icon = 'fa-video';
+                                                        $iconColor = 'danger';
+                                                        break;
+                                                    case 'document':
+                                                        $icon = 'fa-file-pdf';
+                                                        $iconColor = 'warning';
+                                                        break;
+                                                }
+                                                ?>
+                                                <i class="fas <?php echo $icon; ?> text-<?php echo $iconColor; ?> mr-2"></i>
                                                 <?php echo htmlspecialchars($content['content_title']); ?>
                                             </h6>
                                         </div>
                                         
-                                        <?php if ($content['content_type'] == 'text'): ?>
+                                        <?php if ($content['content_type'] == 'text' && !empty($content['content_data'])): ?>
                                             <div class="mt-2">
                                                 <?php echo $content['content_data']; ?>
                                             </div>
-                                        <?php elseif ($content['content_type'] == 'image'): ?>
+                                        <?php elseif ($content['content_type'] == 'image' && !empty($content['file_path'])): ?>
                                             <div class="mt-2">
-                                                <img src="<?php echo htmlspecialchars($content['file_path']); ?>" class="img-fluid" alt="<?php echo htmlspecialchars($content['content_title']); ?>">
+                                                <img src="../content/attachments/<?php echo htmlspecialchars($content['file_path']); ?>" class="img-fluid" alt="<?php echo htmlspecialchars($content['content_title']); ?>">
                                             </div>
-                                        <?php elseif ($content['content_type'] == 'video'): ?>
+                                        <?php elseif ($content['content_type'] == 'video' && !empty($content['file_path'])): ?>
                                             <div class="mt-2">
                                                 <video class="w-100" controls>
-                                                    <source src="<?php echo htmlspecialchars($content['file_path']); ?>" type="video/mp4">
+                                                    <source src="../content/attachments/<?php echo htmlspecialchars($content['file_path']); ?>" type="video/mp4">
                                                     Your browser does not support the video tag.
                                                 </video>
                                             </div>
-                                        <?php elseif ($content['content_type'] == 'document' || $content['content_type'] == 'other'): ?>
+                                        <?php elseif (($content['content_type'] == 'document' || $content['content_type'] == 'other') && !empty($content['file_path'])): ?>
                                             <div class="mt-2">
-                                                <a href="<?php echo htmlspecialchars($content['file_path']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <a href="../content/attachments/<?php echo htmlspecialchars($content['file_path']); ?>" class="btn btn-sm btn-outline-primary" target="_blank">
                                                     <i class="fas fa-download"></i> Download
                                                 </a>
                                             </div>
@@ -234,7 +239,7 @@ include 'header.php';
                         <h3>Welcome to <?php echo htmlspecialchars($course['title']); ?></h3>
                         <p>Select a lesson from the menu on the left to begin.</p>
                         
-                        <?php if (count($lessons) > 0): ?>
+                        <?php if (!empty($lessons)): ?>
                             <a href="lessons.php?id=<?php echo $course_id; ?>&lesson_id=<?php echo $lessons[0]['lesson_id']; ?>" class="btn btn-primary mt-3">
                                 Start with first lesson: <?php echo htmlspecialchars($lessons[0]['title']); ?>
                             </a>
@@ -249,7 +254,6 @@ include 'header.php';
         </div>
     </div>
 </div>
-
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>

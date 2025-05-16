@@ -251,7 +251,7 @@ if (isset($_GET['id'])) {
                                                 </td>
                                                 <td>
                                                     <div class="btn-group btn-group-sm">
-                                                        <a href="lessons.php?id=<?= $lesson['lesson_id'] ?>" class="btn btn-warning">
+                                                        <a href="editLesson.php?id=<?= $lesson['lesson_id'] ?>" class="btn btn-warning">
                                                             <i class="fas fa-edit"></i> Edit
                                                         </a>
                                                         <a href="deleteLesson.php?id=<?= $lesson['lesson_id'] ?>" class="btn btn-danger" 

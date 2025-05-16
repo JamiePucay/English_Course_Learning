@@ -14,8 +14,8 @@ define('APP_VERSION', '1.0.0');
 define('APP_EMAIL', 'beci@beciedu.com');
 
 // File upload settings
-define('UPLOAD_DIR', 'uploads/');
-define('MAX_FILE_SIZE', 10485760); // 10MB
+define('UPLOAD_DIR', '../content/attachments');
+define('MAX_FILE_SIZE', 50000000); // 50MB
 define('ALLOWED_EXTENSIONS', ['jpg', 'jpeg', 'png', 'gif', 'pdf', 'doc', 'docx', 'ppt', 'pptx', 'mp3', 'mp4']);
 
 // Session settings
